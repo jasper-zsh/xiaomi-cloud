@@ -11,12 +11,11 @@ from homeassistant.const import (
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
 )
-from homeassistant.core import callback
-from homeassistant.helpers import device_registry
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.device_registry import DeviceEntryType
 
 from .const import (
     DOMAIN,
@@ -120,7 +119,7 @@ class XiaomiDeviceEntity(TrackerEntity, RestoreEntity, Entity):
             "identifiers": {(DOMAIN, self._unique_id)},
             "name": self._name,
             "manufacturer": "Xiaomi",
-            "entry_type": "device",
+            "entry_type": DeviceEntryType.SERVICE,
             "sw_version": self.sw_version,
             "model": self._name
         }
