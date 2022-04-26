@@ -5,8 +5,10 @@
   "issue_tracker": "https://github.com/fineemb/xiaomi-cloud/issues",
   "dependencies": [],
   "iot_class": "cloud_polling",
-  "version": "1.2.5",
+  "version": "1.2.7",
   "config_flow": true,
-  "codeowners": ["@fineemb"],
+  "codeowners": [
+    "@fineemb"
+  ],
   "requirements": []
 }
