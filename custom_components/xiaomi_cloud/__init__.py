@@ -399,12 +399,17 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
                         device_info["device_lon"] = location_info_json['longitude']
                         device_info["coordinate_type"] = location_info_json['coordinateType']
                         
-                        if 'device_lon' in vin and 'device_lat' in vin and 'device_accuracy' in vin:
-                            movement = self.distance(vin['device_lon'], vin['device_lat'], device_info['device_lon'], device_info['device_lat'])
-                            if movement > self._lazy_scan_distance + max(vin['device_accuracy'], device_info['device_accuracy']):
-                                self._lazy_scan_flags[imei] = self._lazy_scan_interval_ratio
+                        if self.data is None:
+                            _LOGGER.info("first update, skip lazy scan judgement")
                         else:
-                            _LOGGER.warning('previous device location does not exist! %s', vin)
+                            previous_device = list(filter(lambda x: x['imei'] == imei, self.data))
+                            if len(previous_device) == 0:
+                                _LOGGER.warning("previous device data for %s not found", imei)
+                            else:
+                                previous_device = previous_device[0]
+                                movement = self.distance(previous_device['device_lon'], previous_device['device_lat'], device_info['device_lon'], device_info['device_lat'])
+                                if movement > self._lazy_scan_distance + max(previous_device['device_accuracy'], device_info['device_accuracy']):
+                                    self._lazy_scan_flags[imei] = self._lazy_scan_interval_ratio
 
                         device_info["device_power"] = json.loads(
                             await r.text())['data']['location']['receipt'].get('powerLevel',0)
