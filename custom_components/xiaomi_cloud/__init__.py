@@ -404,7 +404,7 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
                             if movement > self._lazy_scan_distance + max(vin['device_accuracy'], device_info['device_accuracy']):
                                 self._lazy_scan_flags[imei] = self._lazy_scan_interval_ratio
                         else:
-                            _LOGGER.warning('previous device location does not exist! {}', vin)
+                            _LOGGER.warning('previous device location does not exist! %s', vin)
 
                         device_info["device_power"] = json.loads(
                             await r.text())['data']['location']['receipt'].get('powerLevel',0)
