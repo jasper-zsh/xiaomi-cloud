@@ -27,7 +27,9 @@
             "user": {
                 "data": {
                     "scan_interval": "Scan interval",
-                    "coordinate_type": "Coordinate type"
+                    "coordinate_type": "Coordinate type",
+                    "lazy_scan_interval_ratio": "Lazy scan interval ratio",
+                    "lazy_scan_distance": "Lazy scan distance"
                 }
             }
         }
