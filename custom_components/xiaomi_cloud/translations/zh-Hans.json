@@ -27,7 +27,9 @@
             "user": {
                 "data": {
                     "scan_interval": "位置更新时间间隔",
-                    "coordinate_type": "坐标体系"
+                    "coordinate_type": "坐标体系",
+                    "lazy_scan_interval_ratio": "慢速更新时间间隔倍数",
+                    "lazy_scan_distance": "慢速更新触发距离"
                 }
             }
         }
