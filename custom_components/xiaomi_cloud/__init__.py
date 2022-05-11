@@ -7,6 +7,7 @@ https://github.com/fineemb/xiaomi-cloud
 import asyncio
 import json
 import datetime
+from shutil import move
 import time
 import logging
 import re
@@ -31,6 +32,8 @@ from homeassistant.const import (
 )
 
 from .const import (
+    CONF_LAZY_SCAN_DISTANCE,
+    CONF_LAZY_SCAN_INTERVAL_RATIO,
     DOMAIN,
     UNDO_UPDATE_LISTENER,
     COORDINATOR,
@@ -51,13 +54,15 @@ async def async_setup_entry(hass, config_entry) -> bool:
     username = config_entry.data[CONF_USERNAME]
     password = config_entry.data[CONF_PASSWORD]
     scan_interval = config_entry.options.get(CONF_SCAN_INTERVAL, 60)
+    lazy_scan_interval_ratio = config_entry.options.get(CONF_LAZY_SCAN_INTERVAL_RATIO, 1)
+    lazy_scan_distance = config_entry.options.get(CONF_LAZY_SCAN_DISTANCE, 1000)
     coordinate_type = config_entry.options.get(CONF_COORDINATE_TYPE, CONF_COORDINATE_TYPE_ORIGINAL)
 
     _LOGGER.debug("Username: %s", username)
 
 
     coordinator = XiaomiCloudDataUpdateCoordinator(
-        hass, username, password, scan_interval, coordinate_type
+        hass, username, password, scan_interval, lazy_scan_interval_ratio, lazy_scan_distance, coordinate_type
     )
     await coordinator.async_refresh()
 
@@ -118,7 +123,7 @@ async def update_listener(hass, config_entry):
 
 class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching XiaomiCloud data API."""
-    def __init__(self, hass, user, password, scan_interval, coordinate_type):
+    def __init__(self, hass, user, password, scan_interval, lazy_scan_interval_ratio, lazy_scan_distance, coordinate_type):
         """Initialize."""
         self._username = user
         self._password = password
@@ -127,7 +132,10 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
         self._device_info = {}
         self._serviceLoginAuth2_json = {}
         self._sign = None
+        self._lazy_scan_interval_ratio = lazy_scan_interval_ratio
+        self._lazy_scan_distance = lazy_scan_distance
         self._scan_interval = scan_interval
+        self._lazy_scan_flags = {}
         self._coordinate_type = coordinate_type
         self.service_data = None
         self.userId = None
@@ -233,7 +241,15 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
     async def _send_find_device_command(self, session):
         flag = True
         for vin in self._device_info:
-            imei = vin["imei"]  
+            imei = vin["imei"]
+            if imei not in self._lazy_scan_flags:
+                self._lazy_scan_flags[imei] = 0
+            else:
+                self._lazy_scan_flags[imei] = self._lazy_scan_flags[imei] + 1
+            if self._lazy_scan_flags[imei] >= self._lazy_scan_interval_ratio:
+                self._lazy_scan_flags[imei] = 0
+            if self._lazy_scan_flags[imei] != 0:
+                continue
             url = 'https://i.mi.com/find/device/{}/location'.format(
                 imei)
             _send_find_device_command_header = {
@@ -382,6 +398,10 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
                         device_info["device_accuracy"] = int(location_info_json['accuracy'])
                         device_info["device_lon"] = location_info_json['longitude']
                         device_info["coordinate_type"] = location_info_json['coordinateType']
+                        
+                        movement = self.distance(vin['device_lon'], vin['device_lat'], device_info['device_lon'], device_info['device_lat'])
+                        if movement > self._lazy_scan_distance + max(vin['device_accuracy'], device_info['device_accuracy']):
+                            self._lazy_scan_flags[imei] = self._lazy_scan_interval_ratio
 
                         device_info["device_power"] = json.loads(
                             await r.text())['data']['location']['receipt'].get('powerLevel',0)
@@ -428,6 +448,12 @@ class XiaomiCloudDataUpdateCoordinator(DataUpdateCoordinator):
         wgsLon = lon - dLon
         wgsLat = lat - dLat
         return [wgsLon,wgsLat]
+    
+    def distance(self, lon1, lat1, lon2, lat2):
+        lon1Rad, lat1Rad, lon2Rad, lat2Rad = math.radians(lon1), math.radians(lat1), math.radians(lon2), math.radians(lat2)
+        a = lat1Rad - lat2Rad
+        b = lon1Rad - lon2Rad
+        return 2 * math.asin(math.sqrt(math.pow(math.sin(a / 2), 2) + math.cos(lat1Rad) * math.cos(lat2Rad) * math.pow(math.sin(b / 2), 2))) * 6378.137 * 1000
 
     async def _async_update_data(self):
         """Update data via library."""

@@ -25,6 +25,8 @@ from homeassistant.const import (
 )
 
 from .const import (
+    CONF_LAZY_SCAN_DISTANCE,
+    CONF_LAZY_SCAN_INTERVAL_RATIO,
     CONF_WAKE_ON_START,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_WAKE_ON_START,
@@ -252,6 +254,14 @@ class XiaomiCloudOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
                         default=self.config_entry.options.get(CONF_SCAN_INTERVAL, 60),
+                    ):int,
+                    vol.Optional(
+                        CONF_LAZY_SCAN_INTERVAL_RATIO,
+                        default=self.config_entry.options.get(CONF_LAZY_SCAN_INTERVAL_RATIO, 1),
+                    ):int,
+                    vol.Optional(
+                        CONF_LAZY_SCAN_DISTANCE,
+                        default=self.config_entry.options.get(CONF_LAZY_SCAN_DISTANCE, 1000),
                     ):int,
                     vol.Optional(
                         CONF_COORDINATE_TYPE,
